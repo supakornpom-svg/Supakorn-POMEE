@@ -1,0 +1,7 @@
+{
+  "name": "ระบบบันทึกและวิเคราะห์ BMI พร้อมแจ้งเตือน Line",
+  "description": "ระบบบันทึกข้อมูลดัชนีมวลกาย (BMI) ออนไลน์ บันทึกลงฐานข้อมูลทันที พร้อม AI แนะนำการออกกำลังกายและอาหารตามเกณฑ์สุขภาพ และระบบแจ้งเตือนผ่าน LINE",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
