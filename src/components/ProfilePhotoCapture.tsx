@@ -106,28 +106,30 @@ export const ProfilePhotoCapture: React.FC<ProfilePhotoCaptureProps> = ({
     if (!videoRef.current) return;
     const video = videoRef.current;
 
-    const canvas = document.createElement('canvas');
     // Crop to square for profile
-    const size = Math.min(video.videoWidth || 480, video.videoHeight || 480);
-    canvas.width = size;
-    canvas.height = size;
+    const sourceSize = Math.min(video.videoWidth || 480, video.videoHeight || 480);
+    const targetSize = Math.min(sourceSize, 320); // crisp and lightweight avatar
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetSize;
+    canvas.height = targetSize;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Center crop
-    const startX = ((video.videoWidth || size) - size) / 2;
-    const startY = ((video.videoHeight || size) - size) / 2;
+    const startX = ((video.videoWidth || sourceSize) - sourceSize) / 2;
+    const startY = ((video.videoHeight || sourceSize) - sourceSize) / 2;
 
     // Mirror if front camera
     if (facingMode === 'user') {
-      ctx.translate(size, 0);
+      ctx.translate(targetSize, 0);
       ctx.scale(-1, 1);
     }
 
-    ctx.drawImage(video, startX, startY, size, size, 0, 0, size, size);
+    ctx.drawImage(video, startX, startY, sourceSize, sourceSize, 0, 0, targetSize, targetSize);
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
     onPhotoChange(dataUrl);
     stopCamera();
   };
@@ -146,22 +148,23 @@ export const ProfilePhotoCapture: React.FC<ProfilePhotoCaptureProps> = ({
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        // Compress & scale to square thumbnail max 500x500
-        const maxDim = 500;
-        let width = img.width;
-        let height = img.height;
+        // Compress & scale to square thumbnail max 320x320
+        const maxDim = 320;
+        const width = img.width;
+        const height = img.height;
         const size = Math.min(width, height);
+        const targetDim = Math.min(size, maxDim);
 
         const canvas = document.createElement('canvas');
-        canvas.width = Math.min(size, maxDim);
-        canvas.height = Math.min(size, maxDim);
+        canvas.width = targetDim;
+        canvas.height = targetDim;
 
         const ctx = canvas.getContext('2d');
         if (ctx) {
           const sx = (width - size) / 2;
           const sy = (height - size) / 2;
-          ctx.drawImage(img, sx, sy, size, size, 0, 0, canvas.width, canvas.height);
-          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          ctx.drawImage(img, sx, sy, size, size, 0, 0, targetDim, targetDim);
+          const compressed = canvas.toDataURL('image/jpeg', 0.75);
           onPhotoChange(compressed);
         }
       };

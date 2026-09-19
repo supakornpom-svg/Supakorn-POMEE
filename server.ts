@@ -306,7 +306,11 @@ async function generateGeminiHealthPlan(record: BmiRecord): Promise<AiHealthPlan
 
 กรุณาให้คำแนะนำการกินอาหารไทยที่หาทานได้จริง และตารางการออกกำลังกายที่เหมาะสมกับสถานะ BMI โดยระวังข้อต่อหากมีน้ำหนักเกิน หรือเน้นการสร้างกล้ามเนื้อหากน้ำหนักต่ำกว่าเกณฑ์ ตอบเป็นภาษาไทยที่สุภาพ กระชับ อ่านเข้าใจง่าย ในรูปแบบ JSON ตามโครงสร้างที่กำหนด`;
 
-    const response = await ai.models.generateContent({
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("AI generation timeout")), 3000)
+    );
+
+    const generatePromise = ai.models.generateContent({
       model: "gemini-3.8-flash",
       contents: prompt,
       config: {
@@ -371,12 +375,14 @@ async function generateGeminiHealthPlan(record: BmiRecord): Promise<AiHealthPlan
       },
     });
 
-    if (response.text) {
+    const response: any = await Promise.race([generatePromise, timeoutPromise]);
+
+    if (response && response.text) {
       const parsed = JSON.parse(response.text.trim());
       return parsed as AiHealthPlan;
     }
   } catch (error) {
-    console.error("Gemini AI generation failed, falling back to clinical rules:", error);
+    console.warn("Using built-in sports & health advisory engine (zero-token mode):", error);
   }
 
   return getBuiltInHealthAdvice(record.category, record.bmi, record.tdee, record.goal, record.name);

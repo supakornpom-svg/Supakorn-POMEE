@@ -10,6 +10,12 @@ import { WorkoutPlanner } from './components/WorkoutPlanner';
 import { CelebrationModal } from './components/CelebrationModal';
 import { Sparkles, CheckCircle2, ShieldCheck, Heart, Trophy, Dumbbell } from 'lucide-react';
 import { MASCOTS } from './assets/mascots';
+import {
+  safeFetchJson,
+  getLocalRecords,
+  saveLocalRecords,
+  calculateLocalStats,
+} from './utils/apiHelper';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'form' | 'workout' | 'history' | 'stats'>('form');
@@ -28,28 +34,51 @@ export default function App() {
     date: new Date().toLocaleDateString('th-TH'),
   });
 
-  // Fetch initial data
+  // Fetch initial data with instant local cache and safe API sync
   const fetchData = async () => {
+    // 1. Instantly load from local storage so user sees data immediately without waiting
+    const localRecs = getLocalRecords();
+    if (localRecs.length > 0) {
+      setRecords((prev) => (prev.length === 0 ? localRecs : prev));
+      if (!latestSavedRecord) {
+        setLatestSavedRecord(localRecs[0]);
+      }
+      setStats(calculateLocalStats(localRecs));
+    }
+
     try {
-      const [recordsRes, statsRes] = await Promise.all([
-        fetch('/api/records'),
-        fetch('/api/records/stats'),
+      // 2. Safely sync from backend API without ever throwing JSON unexpected token errors
+      const [recordsResult, statsResult] = await Promise.all([
+        safeFetchJson<{ records: BmiRecord[] }>('/api/records'),
+        safeFetchJson<DatabaseStats>('/api/records/stats'),
       ]);
 
-      if (recordsRes.ok) {
-        const data = await recordsRes.json();
-        setRecords(data.records || []);
-        if (data.records && data.records.length > 0 && !latestSavedRecord) {
-          setLatestSavedRecord(data.records[0]);
+      if (recordsResult.ok && recordsResult.data?.records) {
+        const apiRecords = recordsResult.data.records;
+        // Merge with any local offline records
+        const mergedMap = new Map<string, BmiRecord>();
+        apiRecords.forEach((r) => mergedMap.set(r.id, r));
+        localRecs.forEach((r) => {
+          if (!mergedMap.has(r.id)) mergedMap.set(r.id, r);
+        });
+        const combined = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        setRecords(combined);
+        saveLocalRecords(combined);
+        if (combined.length > 0 && !latestSavedRecord) {
+          setLatestSavedRecord(combined[0]);
         }
       }
 
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
+      if (statsResult.ok && statsResult.data) {
+        setStats(statsResult.data);
+      } else if (localRecs.length > 0) {
+        setStats(calculateLocalStats(localRecs));
       }
     } catch (err) {
-      console.error('Failed to load initial data:', err);
+      console.warn('API sync deferred, using active local storage (zero-token mode):', err);
     }
   };
 
@@ -77,23 +106,30 @@ export default function App() {
   };
 
   const handleRecordSaved = (newRecord: BmiRecord) => {
-    setRecords((prev) => [newRecord, ...prev]);
+    setRecords((prev) => {
+      const updated = [newRecord, ...prev.filter((r) => r.id !== newRecord.id)];
+      saveLocalRecords(updated);
+      setStats(calculateLocalStats(updated));
+      return updated;
+    });
     setLatestSavedRecord(newRecord);
-    fetchData();
   };
 
   const handleDeleteRecord = async (id: string) => {
+    setRecords((prev) => {
+      const filtered = prev.filter((r) => r.id !== id);
+      saveLocalRecords(filtered);
+      setStats(calculateLocalStats(filtered));
+      return filtered;
+    });
+    if (latestSavedRecord?.id === id) {
+      setLatestSavedRecord(null);
+    }
+
     try {
-      const res = await fetch(`/api/records/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setRecords((prev) => prev.filter((r) => r.id !== id));
-        if (latestSavedRecord?.id === id) {
-          setLatestSavedRecord(null);
-        }
-        fetchData();
-      }
+      await safeFetchJson(`/api/records/${id}`, { method: 'DELETE' });
     } catch (err) {
-      console.error('Failed to delete record:', err);
+      console.warn('Delete synced locally:', err);
     }
   };
 

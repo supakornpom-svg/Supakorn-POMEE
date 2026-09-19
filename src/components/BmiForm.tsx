@@ -15,6 +15,12 @@ import {
 import type { BmiCategory, BmiRecord } from '../types';
 import { BmiGauge } from './BmiGauge';
 import { ProfilePhotoCapture } from './ProfilePhotoCapture';
+import {
+  safeFetchJson,
+  buildLocalHealthPlan,
+  getLocalRecords,
+  saveLocalRecords,
+} from '../utils/apiHelper';
 
 interface BmiFormProps {
   onRecordSaved: (record: BmiRecord) => void;
@@ -80,45 +86,105 @@ export const BmiForm: React.FC<BmiFormProps> = ({ onRecordSaved, onCelebrate }) 
     setStatusMessage(null);
 
     try {
-      const response = await fetch('/api/records', {
+      const payload = {
+        name: name.trim(),
+        gender,
+        age,
+        weight,
+        height,
+        activityLevel,
+        goal,
+        notes,
+        photoUrl,
+      };
+
+      const result = await safeFetchJson<{ record: BmiRecord; message?: string }>('/api/records', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify(payload),
+      });
+
+      let savedRecord: BmiRecord;
+
+      if (result.ok && result.data?.record) {
+        savedRecord = result.data.record;
+        // Keep local cache in sync
+        const currentLocals = getLocalRecords();
+        saveLocalRecords([savedRecord, ...currentLocals.filter((r) => r.id !== savedRecord.id)]);
+
+        setStatusMessage({
+          type: 'success',
+          text: 'บันทึกข้อมูลเรียบร้อยแล้ว (ไม่ต้องใช้ Token)',
+        });
+      } else {
+        // Fallback to instant local calculation (zero-token mode)
+        const heightM = height / 100;
+        const bmiVal = Number((weight / (heightM * heightM)).toFixed(1));
+        let bmrVal = 10 * weight + 6.25 * height - 5 * age;
+        if (gender === 'male') bmrVal += 5;
+        else bmrVal -= 161;
+        bmrVal = Math.max(800, Math.round(bmrVal));
+
+        const multipliers: Record<string, number> = {
+          sedentary: 1.2,
+          light: 1.375,
+          moderate: 1.55,
+          very_active: 1.725,
+        };
+        const tdeeVal = Math.round(bmrVal * (multipliers[activityLevel] || 1.2));
+
+        const localPlan = buildLocalHealthPlan(category, bmiVal, tdeeVal, goal, name.trim());
+
+        savedRecord = {
+          id: `bmi_local_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
           name: name.trim(),
           gender,
           age,
           weight,
           height,
+          bmi: bmiVal,
+          category,
+          categoryLabelTh,
+          categoryColor:
+            category === 'underweight'
+              ? '#3b82f6'
+              : category === 'normal'
+              ? '#10b981'
+              : category === 'overweight'
+              ? '#eab308'
+              : '#f97316',
+          idealWeightMin,
+          idealWeightMax,
+          bmr: bmrVal,
+          tdee: tdeeVal,
           activityLevel,
           goal,
-          notes,
-          photoUrl,
-        }),
-      });
+          createdAt: new Date().toISOString(),
+          notes: notes.trim(),
+          photoUrl: photoUrl || undefined,
+          aiRecommendation: localPlan,
+        };
 
-      const data = await response.json();
+        const currentLocals = getLocalRecords();
+        saveLocalRecords([savedRecord, ...currentLocals]);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'ไม่สามารถบันทึกข้อมูลได้');
+        setStatusMessage({
+          type: 'success',
+          text: 'บันทึกข้อมูลสำเร็จแล้ว (ใช้งานได้ทันที 100% ไม่ต้องใช้ Token)',
+        });
       }
 
-      setStatusMessage({
-        type: 'success',
-        text: 'บันทึกข้อมูลเข้าฐานข้อมูลสำเร็จทันที!',
-      });
-
-      if (data.record) {
-        onRecordSaved(data.record);
-        if (onCelebrate) {
-          onCelebrate(
-            `🏆 บันทึกค่าสุขภาพสำเร็จ: คุณ ${data.record.name}!`,
-            `BMI: ${data.record.bmi} (${data.record.categoryLabelTh}) • TDEE: ${Math.round(data.record.tdee)} kcal`,
-            'บันทึกข้อมูลดัชนีมวลกาย (BMI) เรียบร้อยแล้ว',
-            data.record
-          );
-        }
+      onRecordSaved(savedRecord);
+      if (onCelebrate) {
+        onCelebrate(
+          `🏆 บันทึกค่าสุขภาพสำเร็จ: คุณ ${savedRecord.name}!`,
+          `BMI: ${savedRecord.bmi} (${savedRecord.categoryLabelTh}) • TDEE: ${Math.round(savedRecord.tdee)} kcal`,
+          'บันทึกข้อมูลดัชนีมวลกาย (BMI) เรียบร้อยแล้ว',
+          savedRecord
+        );
       }
     } catch (err: any) {
+      console.error('Record saving error:', err);
       setStatusMessage({
         type: 'error',
         text: err.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
