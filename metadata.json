@@ -1,7 +1,7 @@
 {
   "name": "Sport Fit & BMI Tracker - ระบบบันทึก BMI และโปรแกรมออกกำลังกาย",
   "description": "ระบบบันทึกดัชนีมวลกาย (BMI) ธีมสปอร์ตเท่ๆ พร้อมตัวการ์ตูนมาสคอต ตารางออกกำลังกายรายสัปดาห์/รายเดือน คำแนะนำโภชนาการ และป๊อปอัพถ้วยรางวัลฉลองความสำเร็จพร้อมเซฟรูป",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
 

@@ -14,10 +14,11 @@ import {
 } from 'lucide-react';
 import type { BmiCategory, BmiRecord } from '../types';
 import { BmiGauge } from './BmiGauge';
+import { ProfilePhotoCapture } from './ProfilePhotoCapture';
 
 interface BmiFormProps {
   onRecordSaved: (record: BmiRecord) => void;
-  onCelebrate?: (title: string, subtitle: string, activityName: string) => void;
+  onCelebrate?: (title: string, subtitle: string, activityName: string, targetRecord?: BmiRecord) => void;
 }
 
 export const BmiForm: React.FC<BmiFormProps> = ({ onRecordSaved, onCelebrate }) => {
@@ -29,6 +30,7 @@ export const BmiForm: React.FC<BmiFormProps> = ({ onRecordSaved, onCelebrate }) 
   const [activityLevel, setActivityLevel] = useState<'sedentary' | 'light' | 'moderate' | 'very_active'>('light');
   const [goal, setGoal] = useState<'lose_weight' | 'maintain' | 'gain_weight'>('maintain');
   const [notes, setNotes] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
@@ -90,6 +92,7 @@ export const BmiForm: React.FC<BmiFormProps> = ({ onRecordSaved, onCelebrate }) 
           activityLevel,
           goal,
           notes,
+          photoUrl,
         }),
       });
 
@@ -110,7 +113,8 @@ export const BmiForm: React.FC<BmiFormProps> = ({ onRecordSaved, onCelebrate }) 
           onCelebrate(
             `🏆 บันทึกค่าสุขภาพสำเร็จ: คุณ ${data.record.name}!`,
             `BMI: ${data.record.bmi} (${data.record.categoryLabelTh}) • TDEE: ${Math.round(data.record.tdee)} kcal`,
-            'บันทึกข้อมูลดัชนีมวลกาย (BMI) เรียบร้อยแล้ว'
+            'บันทึกข้อมูลดัชนีมวลกาย (BMI) เรียบร้อยแล้ว',
+            data.record
           );
         }
       }
@@ -194,6 +198,15 @@ export const BmiForm: React.FC<BmiFormProps> = ({ onRecordSaved, onCelebrate }) 
                 className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-950 font-medium text-sm placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
               />
             </div>
+          </div>
+
+          {/* Profile Photo Camera / Upload Capture */}
+          <div className="sm:col-span-2">
+            <ProfilePhotoCapture
+              photoUrl={photoUrl}
+              onPhotoChange={setPhotoUrl}
+              label="ถ่ายภาพตัวเองเพื่อตั้งเป็นโปรไฟล์ผู้ฝึกซ้อม (โชว์บนการ์ดแชร์ความสำเร็จ)"
+            />
           </div>
 
           {/* Gender Select */}

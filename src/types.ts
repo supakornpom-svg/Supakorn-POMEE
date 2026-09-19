@@ -25,6 +25,7 @@ export interface BmiRecord {
   createdAt: string;
   aiRecommendation?: AiHealthPlan;
   notes?: string;
+  photoUrl?: string; // User self-captured athlete profile photo
 }
 
 export interface AiHealthPlan {
@@ -116,4 +117,5 @@ export interface AchievementData {
   record?: BmiRecord;
   completedActivity?: string;
   date: string;
+  userPhoto?: string; // Captured selfie or uploaded profile photo
 }

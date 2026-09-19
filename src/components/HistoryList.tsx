@@ -157,41 +157,56 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                 key={rec.id}
                 className="border border-slate-200 hover:border-emerald-300 rounded-xl p-4 transition-all bg-slate-50/40 hover:bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
               >
-                <div className="space-y-1.5 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-slate-900 text-sm">{rec.name}</span>
-                    <span className="text-xs text-slate-400">
-                      ({rec.gender === 'male' ? 'ชาย' : rec.gender === 'female' ? 'หญิง' : 'ทั่วไป'}, {rec.age} ปี)
-                    </span>
-                    {getBmiBadge(rec.bmi, rec.categoryLabelTh)}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                    <div>
-                      <span>น้ำหนัก: </span>
-                      <strong className="text-slate-800">{rec.weight} กก.</strong>
-                    </div>
-                    <div>
-                      <span>ส่วนสูง: </span>
-                      <strong className="text-slate-800">{rec.height} ซม.</strong>
-                    </div>
-                    <div>
-                      <span>BMI: </span>
-                      <strong className="text-emerald-700 font-bold">{rec.bmi}</strong>
-                    </div>
-                    <div className="text-slate-400 flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      <span>{dateStr}</span>
-                    </div>
-                  </div>
-
-                  {rec.notes && (
-                    <div className="pt-0.5">
-                      <span className="text-[11px] text-slate-500 truncate max-w-[280px] inline-block">
-                        โน้ต: {rec.notes}
-                      </span>
+                <div className="flex items-start gap-3 min-w-0">
+                  {/* User Profile Avatar / Camera Icon */}
+                  {rec.photoUrl ? (
+                    <img
+                      src={rec.photoUrl}
+                      alt={rec.name}
+                      className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover border-2 border-emerald-500 shrink-0 shadow-xs"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-slate-200 text-slate-500 font-black flex items-center justify-center text-sm shrink-0 border border-slate-300">
+                      {rec.name ? rec.name.charAt(0).toUpperCase() : '👤'}
                     </div>
                   )}
+
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-slate-900 text-sm">{rec.name}</span>
+                      <span className="text-xs text-slate-400">
+                        ({rec.gender === 'male' ? 'ชาย' : rec.gender === 'female' ? 'หญิง' : 'ทั่วไป'}, {rec.age} ปี)
+                      </span>
+                      {getBmiBadge(rec.bmi, rec.categoryLabelTh)}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                      <div>
+                        <span>น้ำหนัก: </span>
+                        <strong className="text-slate-800">{rec.weight} กก.</strong>
+                      </div>
+                      <div>
+                        <span>ส่วนสูง: </span>
+                        <strong className="text-slate-800">{rec.height} ซม.</strong>
+                      </div>
+                      <div>
+                        <span>BMI: </span>
+                        <strong className="text-emerald-700 font-bold">{rec.bmi}</strong>
+                      </div>
+                      <div className="text-slate-400 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{dateStr}</span>
+                      </div>
+                    </div>
+
+                    {rec.notes && (
+                      <div className="pt-0.5">
+                        <span className="text-[11px] text-slate-500 truncate max-w-[280px] inline-block">
+                          โน้ต: {rec.notes}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Actions */}

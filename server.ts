@@ -15,7 +15,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Initialize Gemini Client
 const ai = process.env.GEMINI_API_KEY
@@ -423,7 +424,7 @@ app.get("/api/records/stats", (_req, res) => {
 // 4. Save new BMI record immediately into database
 app.post("/api/records", async (req, res) => {
   try {
-    const { name, gender, age, weight, height, activityLevel, goal, notes } = req.body;
+    const { name, gender, age, weight, height, activityLevel, goal, notes, photoUrl } = req.body;
 
     if (!name || !weight || !height || !age) {
       return res.status(400).json({ error: "กรุณากรอกข้อมูลชื่อ น้ำหนัก ส่วนสูง และอายุ ให้ครบถ้วน" });
@@ -486,6 +487,7 @@ app.post("/api/records", async (req, res) => {
       goal: goal || "maintain",
       createdAt: new Date().toISOString(),
       notes: notes ? String(notes).trim() : "",
+      photoUrl: photoUrl && typeof photoUrl === "string" ? photoUrl : undefined,
     };
 
     // Generate AI recommendations

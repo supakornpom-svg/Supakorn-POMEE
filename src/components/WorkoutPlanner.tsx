@@ -16,10 +16,13 @@ import {
   Moon,
   Coffee,
   HeartPulse,
+  FileSpreadsheet,
+  Download,
 } from 'lucide-react';
 import { WORKOUT_PROGRAMS } from '../data/workoutPrograms';
 import type { BmiRecord, SportWorkoutProgram } from '../types';
 import { MASCOTS } from '../assets/mascots';
+import { downloadWorkoutExcel } from '../utils/exportWorkoutExcel';
 
 interface WorkoutPlannerProps {
   currentRecord?: BmiRecord | null;
@@ -152,14 +155,28 @@ export const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({
 
       {/* Program Selection Cards */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-            <Dumbbell className="w-4 h-4 text-emerald-600" />
-            <span>เลือกโปรแกรมการออกกำลังกายที่เหมาะกับคุณ</span>
-          </h3>
-          <span className="text-xs text-slate-500 hidden sm:inline">
-            ปรับระดับความหนักตามเป้าหมาย
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+          <div>
+            <h3 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+              <Dumbbell className="w-4 h-4 text-emerald-600" />
+              <span>เลือกโปรแกรมการออกกำลังกายที่เหมาะกับคุณ</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              เลือกตามระดับความพร้อมของร่างกาย หรือดาวน์โหลดไปฝึกตามใน Excel
+            </p>
+          </div>
+
+          {/* Direct Excel Download Button */}
+          <button
+            type="button"
+            onClick={() => downloadWorkoutExcel(program, currentRecord)}
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-sm transition-all cursor-pointer shrink-0"
+            title="ดาวน์โหลดตารางออกกำลังกายทั้งรายสัปดาห์และรายเดือนเป็นไฟล์ Excel (.csv)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
+            <span>ดาวน์โหลดตาราง Excel</span>
+            <Download className="w-3.5 h-3.5 opacity-80" />
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -278,12 +295,24 @@ export const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({
               </h4>
             </div>
 
-            {/* Progress bar */}
-            <div className="w-full sm:w-60 bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
-              <div
-                className="bg-gradient-to-r from-emerald-400 to-lime-400 h-full rounded-full transition-all duration-500"
-                style={{ width: `${(completedCount / 7) * 100}%` }}
-              />
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+              {/* Progress bar */}
+              <div className="w-36 sm:w-48 bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700 shrink-0">
+                <div
+                  className="bg-gradient-to-r from-emerald-400 to-lime-400 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${(completedCount / 7) * 100}%` }}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => downloadWorkoutExcel(program, currentRecord)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-sm"
+                title="ดาวน์โหลดตารางสัปดาห์นี้และโปรแกรมทั้งหมดลง Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">โหลดตาราง</span> Excel
+              </button>
             </div>
           </div>
 
@@ -401,16 +430,28 @@ export const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({
       {/* VIEW 2: MONTHLY PHASES (WEEK 1 - WEEK 4) */}
       {activeView === 'monthly' && (
         <div className="space-y-4">
-          <div className="bg-gradient-to-r from-emerald-600 to-slate-900 text-white p-5 rounded-2xl shadow-md">
-            <div className="text-xs text-lime-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <Trophy className="w-4 h-4 text-lime-400" /> Progressive Overload Formula
+          <div className="bg-gradient-to-r from-emerald-600 to-slate-900 text-white p-5 rounded-2xl shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="text-xs text-lime-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <Trophy className="w-4 h-4 text-lime-400" /> Progressive Overload Formula
+              </div>
+              <h4 className="text-base sm:text-lg font-black mt-1">
+                แผนการฝึกแบบก้าวหน้า 4 สัปดาห์ (1 Month Transformation)
+              </h4>
+              <p className="text-xs text-slate-200 mt-1 max-w-xl">
+                การออกกำลังกายให้ได้ผลถาวรต้องมีการเพิ่มระดับความหนักอย่างเป็นขั้นตอน เพื่อไม่ให้ร่างกายเคยชินและเกิดสภาวะน้ำหนักตัน (Plateau)
+              </p>
             </div>
-            <h4 className="text-base sm:text-lg font-black mt-1">
-              แผนการฝึกแบบก้าวหน้า 4 สัปดาห์ (1 Month Transformation)
-            </h4>
-            <p className="text-xs text-slate-200 mt-1 max-w-xl">
-              การออกกำลังกายให้ได้ผลถาวรต้องมีการเพิ่มระดับความหนักอย่างเป็นขั้นตอน เพื่อไม่ให้ร่างกายเคยชินและเกิดสภาวะน้ำหนักตัน (Plateau)
-            </p>
+
+            <button
+              type="button"
+              onClick={() => downloadWorkoutExcel(program, currentRecord)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer shrink-0 self-start sm:self-center"
+              title="ดาวน์โหลดแผนความก้าวหน้ารายเดือนและตารางฝึกเป็น Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>ดาวน์โหลดแผน 4 สัปดาห์ (Excel)</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

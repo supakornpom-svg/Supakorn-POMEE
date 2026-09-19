@@ -17,9 +17,13 @@ import {
   Award,
   Loader2,
   Copy,
+  Camera,
+  User,
+  Trash2,
 } from 'lucide-react';
 import type { AchievementData } from '../types';
 import { MASCOTS, MOTIVATIONAL_QUOTES } from '../assets/mascots';
+import { ProfilePhotoCapture } from './ProfilePhotoCapture';
 
 interface CelebrationModalProps {
   isOpen: boolean;
@@ -36,6 +40,18 @@ export const CelebrationModal: React.FC<CelebrationModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [selectedMascot, setSelectedMascot] = useState<'fit' | 'chubby'>('fit');
+  const [userPhoto, setUserPhoto] = useState<string | undefined>(
+    data.userPhoto || data.record?.photoUrl
+  );
+  const [showPhotoTool, setShowPhotoTool] = useState(false);
+
+  // Sync user photo whenever data changes or modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setUserPhoto(data.userPhoto || data.record?.photoUrl);
+      setShowPhotoTool(false);
+    }
+  }, [isOpen, data]);
 
   // Trigger celebration confetti when opened
   useEffect(() => {
@@ -145,7 +161,7 @@ export const CelebrationModal: React.FC<CelebrationModalProps> = ({
             </button>
 
             {/* Bouncy Golden Trophy Header with dynamic glow */}
-            <div className="relative pt-8 pb-4 text-center px-4 overflow-hidden bg-gradient-to-b from-amber-500/20 via-emerald-500/10 to-transparent">
+            <div className="relative pt-8 pb-3 text-center px-4 overflow-hidden bg-gradient-to-b from-amber-500/20 via-emerald-500/10 to-transparent">
               {/* Animated Glow Rings */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-amber-400/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -154,9 +170,9 @@ export const CelebrationModal: React.FC<CelebrationModalProps> = ({
                 initial={{ scale: 0, rotate: -20 }}
                 animate={{ scale: [0, 1.25, 0.95, 1.08, 1], rotate: [-20, 10, -5, 3, 0] }}
                 transition={{ duration: 0.85, ease: 'easeOut' }}
-                className="relative inline-block mb-3"
+                className="relative inline-block mb-2"
               >
-                <div className="relative w-28 h-28 sm:w-32 sm:h-32 mx-auto rounded-3xl p-1 bg-gradient-to-tr from-amber-400 via-yellow-200 to-amber-500 shadow-xl shadow-amber-500/30">
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-3xl p-1 bg-gradient-to-tr from-amber-400 via-yellow-200 to-amber-500 shadow-xl shadow-amber-500/30">
                   <img
                     src={MASCOTS.trophy}
                     alt="ถ้วยรางวัลชนะเลิศ"
@@ -186,32 +202,73 @@ export const CelebrationModal: React.FC<CelebrationModalProps> = ({
                 </p>
               </motion.div>
 
-              {/* Mascot Switcher */}
-              <div className="flex items-center justify-center gap-2 mt-4">
-                <span className="text-[11px] text-slate-400">เลือกกองเชียร์:</span>
+              {/* Custom Controls Bar: Mascot & Photo Toggle */}
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-3 pt-2 border-t border-slate-800/80">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-400">มาสคอต:</span>
+                  <button
+                    onClick={() => setSelectedMascot('fit')}
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                      selectedMascot === 'fit'
+                        ? 'bg-lime-500 text-slate-950 shadow-md shadow-lime-500/30 scale-105'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    โค้ชหุ่นฟิต
+                  </button>
+                  <button
+                    onClick={() => setSelectedMascot('chubby')}
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                      selectedMascot === 'chubby'
+                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 scale-105'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    น้องจ้ำม่ำ
+                  </button>
+                </div>
+
+                <div className="h-4 w-px bg-slate-700 hidden sm:block" />
+
+                {/* Camera / Photo Button */}
                 <button
-                  onClick={() => setSelectedMascot('fit')}
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    selectedMascot === 'fit'
-                      ? 'bg-lime-500 text-slate-950 shadow-md shadow-lime-500/30 scale-105'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  type="button"
+                  onClick={() => setShowPhotoTool(!showPhotoTool)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    userPhoto
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                      : 'bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700'
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  โค้ชหุ่นฟิตสุดเท่
-                </button>
-                <button
-                  onClick={() => setSelectedMascot('chubby')}
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    selectedMascot === 'chubby'
-                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 scale-105'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-                  น้องจ้ำม่ำสู้ไม่ถอย
+                  <Camera className="w-3.5 h-3.5 text-lime-400" />
+                  <span>{userPhoto ? 'เปลี่ยนภาพตัวเอง' : 'ถ่ายภาพตัวเองลงการ์ด'}</span>
                 </button>
               </div>
+
+              {/* Photo Tool Dropdown inside Modal */}
+              {showPhotoTool && (
+                <div className="mt-3 p-3 bg-slate-950 rounded-2xl border border-slate-700 text-left">
+                  <ProfilePhotoCapture
+                    photoUrl={userPhoto}
+                    onPhotoChange={(newPhoto) => {
+                      setUserPhoto(newPhoto);
+                      if (data.record) {
+                        data.record.photoUrl = newPhoto;
+                      }
+                    }}
+                    label="ถ่ายภาพตัวเองเพื่อโชว์บนการ์ดใบนี้"
+                  />
+                  <div className="mt-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setShowPhotoTool(false)}
+                      className="text-xs text-lime-400 font-semibold hover:underline cursor-pointer"
+                    >
+                      เสร็จสิ้นการตั้งค่ารูป
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Achievement Card Content (Target for Image Export) */}
@@ -246,29 +303,61 @@ export const CelebrationModal: React.FC<CelebrationModalProps> = ({
                   </div>
                 </div>
 
-                {/* Mascot & User Spotlight */}
-                <div className="flex items-center gap-4 bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
-                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl overflow-hidden border-2 border-lime-400/80 shadow-md">
-                    <img
-                      src={selectedMascot === 'fit' ? MASCOTS.fit : MASCOTS.chubby}
-                      alt="Mascot"
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[9px] text-center font-bold text-lime-400 py-0.5">
-                      {selectedMascot === 'fit' ? 'PRO COACH' : 'CHAMPION'}
+                {/* Mascot & User Spotlight with Athlete Photo */}
+                <div className="flex items-center gap-3.5 bg-slate-800/70 p-3.5 rounded-2xl border border-slate-700/70 relative">
+                  {/* Visual Pair: User Self Photo + Mascot Cheerleader */}
+                  <div className="flex items-center -space-x-4 shrink-0">
+                    {/* User Athlete Photo */}
+                    {userPhoto ? (
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-emerald-400 shadow-lg z-10 bg-slate-900">
+                        <img
+                          src={userPhoto}
+                          alt="ภาพตนเอง"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-[9px] text-center font-bold text-white py-0.5">
+                          ATHLETE
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => setShowPhotoTool(true)}
+                        className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-dashed border-slate-600 hover:border-emerald-400 bg-slate-900 flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-emerald-400 transition-colors z-10"
+                        title="คลิกเพื่อถ่ายภาพตัวเองลงบนการ์ด"
+                      >
+                        <Camera className="w-5 h-5 text-lime-400" />
+                        <span className="text-[9px] font-semibold mt-1">ถ่ายภาพ</span>
+                      </div>
+                    )}
+
+                    {/* Mascot Cheerleader Companion */}
+                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-amber-400/90 shadow-md bg-slate-900">
+                      <img
+                        src={selectedMascot === 'fit' ? MASCOTS.fit : MASCOTS.chubby}
+                        alt="Mascot"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[8px] text-center font-bold text-amber-300 py-0.5">
+                        {selectedMascot === 'fit' ? 'COACH' : 'MASCOT'}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 pl-1">
                     <div className="text-[11px] text-slate-400 flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-slate-400" />
                       <span>{data.date || new Date().toLocaleDateString('th-TH')}</span>
                     </div>
-                    <h3 className="text-base sm:text-lg font-black text-white truncate">
-                      {data.record?.name || 'ยอดนักกีฬาเพื่อสุขภาพ'}
+                    <h3 className="text-base sm:text-lg font-black text-white truncate flex items-center gap-1.5">
+                      <span>{data.record?.name || 'ยอดนักกีฬาเพื่อสุขภาพ'}</span>
+                      {userPhoto && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          VERIFIED
+                        </span>
+                      )}
                     </h3>
-                    <p className="text-xs text-lime-400 font-semibold mt-0.5">
+                    <p className="text-xs text-lime-400 font-semibold mt-0.5 truncate">
                       {data.completedActivity || 'บันทึกสุขภาพ & ฟิตเนสสำเร็จ'}
                     </p>
                     <p className="text-[11px] text-slate-300 italic line-clamp-1 mt-1">
@@ -374,3 +463,4 @@ export const CelebrationModal: React.FC<CelebrationModalProps> = ({
     </AnimatePresence>
   );
 };
+

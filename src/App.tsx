@@ -122,8 +122,8 @@ export default function App() {
             <div className="lg:col-span-7 space-y-6">
               <BmiForm
                 onRecordSaved={handleRecordSaved}
-                onCelebrate={(title, subtitle, activity) =>
-                  triggerCelebration(title, subtitle, activity)
+                onCelebrate={(title, subtitle, activity, rec) =>
+                  triggerCelebration(title, subtitle, activity, rec || latestSavedRecord || undefined)
                 }
               />
             </div>
