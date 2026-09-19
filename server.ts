@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
-import type { BmiRecord, BmiCategory, AiHealthPlan, LineSettings, DatabaseStats } from "./src/types.js";
+import type { BmiRecord, BmiCategory, AiHealthPlan, DatabaseStats } from "./src/types.js";
 
 dotenv.config();
 
@@ -32,7 +32,6 @@ const ai = process.env.GEMINI_API_KEY
 // Persistent Data Storage Paths
 const DATA_DIR = path.join(process.cwd(), "data");
 const RECORDS_FILE = path.join(DATA_DIR, "bmi_records.json");
-const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -58,7 +57,6 @@ const INITIAL_RECORDS: BmiRecord[] = [
     activityLevel: "light",
     goal: "lose_weight",
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    lineNotificationStatus: "sent",
     notes: "ต้องการลดน้ำหนักเพื่อสุขภาพและลดอาการปวดข้อเข่า",
   },
   {
@@ -79,7 +77,6 @@ const INITIAL_RECORDS: BmiRecord[] = [
     activityLevel: "moderate",
     goal: "gain_weight",
     createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    lineNotificationStatus: "sent",
     notes: "ต้องการเพิ่มมวลกล้ามเนื้อและน้ำหนักให้สมส่วน",
   },
   {
@@ -100,7 +97,6 @@ const INITIAL_RECORDS: BmiRecord[] = [
     activityLevel: "light",
     goal: "maintain",
     createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
-    lineNotificationStatus: "sent",
     notes: "รักษาน้ำหนักให้คงที่ ตรวจสุขภาพประจำปีปกติ",
   },
 ];
@@ -125,39 +121,6 @@ function writeRecords(records: BmiRecord[]) {
   } catch (error) {
     console.error("Error writing records file:", error);
   }
-}
-
-function readSettings(): { lineNotifyToken?: string; lineChannelAccessToken?: string; lineUserId?: string } {
-  try {
-    if (!fs.existsSync(SETTINGS_FILE)) {
-      return {};
-    }
-    const data = fs.readFileSync(SETTINGS_FILE, "utf-8");
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Error reading settings file:", error);
-    return {};
-  }
-}
-
-function writeSettings(settings: { lineNotifyToken?: string; lineChannelAccessToken?: string; lineUserId?: string }) {
-  try {
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), "utf-8");
-  } catch (error) {
-    console.error("Error writing settings file:", error);
-  }
-}
-
-// Active LINE Token helper
-function getActiveLineNotifyToken(): string | null {
-  const settings = readSettings();
-  if (settings.lineNotifyToken && settings.lineNotifyToken.trim().length > 0) {
-    return settings.lineNotifyToken.trim();
-  }
-  if (process.env.LINE_NOTIFY_TOKEN && process.env.LINE_NOTIFY_TOKEN.trim().length > 0) {
-    return process.env.LINE_NOTIFY_TOKEN.trim();
-  }
-  return null;
 }
 
 // Helper to determine Asian BMI Category
@@ -418,139 +381,6 @@ async function generateGeminiHealthPlan(record: BmiRecord): Promise<AiHealthPlan
   return getBuiltInHealthAdvice(record.category, record.bmi, record.tdee, record.goal, record.name);
 }
 
-// Send LINE Notification (supports LINE Notify, LINE Messaging API, and Webhooks)
-async function sendLineNotification(record: BmiRecord, token?: string): Promise<{ success: boolean; message: string }> {
-  const lineToken = token || getActiveLineNotifyToken();
-
-  if (!lineToken) {
-    return {
-      success: false,
-      message: "ยังไม่ได้ตั้งค่า LINE Notify Token ในระบบ",
-    };
-  }
-
-  // Allow simulated / demo test token
-  if (lineToken.toLowerCase() === "demo" || lineToken.toLowerCase() === "test" || lineToken.toLowerCase() === "simulator") {
-    return {
-      success: true,
-      message: "ทดสอบการจำลองส่งแจ้งเตือน LINE สำเร็จ (Simulator Mode)",
-    };
-  }
-
-  const categoryEmoji =
-    record.category === "normal"
-      ? "✅"
-      : record.category === "underweight"
-      ? "🔷"
-      : record.category === "overweight"
-      ? "⚠️"
-      : "🚨";
-
-  const timeFormatted = new Date().toLocaleString("th-TH", {
-    timeZone: "Asia/Bangkok",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  const messageText = `
-🔔 แจ้งเตือน: มีการบันทึกข้อมูล BMI ใหม่!
-━━━━━━━━━━━━━━━━━━━━
-👤 คุณ: ${record.name} (อายุ ${record.age} ปี)
-⚖️ น้ำหนัก: ${record.weight} kg | ส่วนสูง: ${record.height} cm
-📊 ค่า BMI: ${record.bmi.toFixed(1)} ${categoryEmoji}
-🏷️ สถานะ: ${record.categoryLabelTh}
-🎯 น้ำหนักที่เหมาะสม: ${record.idealWeightMin.toFixed(1)} - ${record.idealWeightMax.toFixed(1)} kg
-🔥 BMR: ${Math.round(record.bmr)} kcal | TDEE: ${Math.round(record.tdee)} kcal
-📌 เป้าหมาย: ${
-    record.goal === "lose_weight"
-      ? "ลดน้ำหนัก/ไขมัน"
-      : record.goal === "gain_weight"
-      ? "เพิ่มน้ำหนัก/กล้ามเนื้อ"
-      : "รักษาสุขภาพ/รูปร่าง"
-  }
-🕒 บันทึกเมื่อ: ${timeFormatted}
-━━━━━━━━━━━━━━━━━━━━
-💡 ดูตารางอาหารและการออกกำลังกายได้ในระบบทันที!`;
-
-  try {
-    // If token is a webhook URL (e.g. LINE bot webhook proxy, Discord/Slack, or Make/Zapier)
-    if (lineToken.startsWith("http://") || lineToken.startsWith("https://")) {
-      const webhookRes = await fetch(lineToken, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: messageText,
-          record,
-        }),
-      });
-      if (webhookRes.ok) {
-        return { success: true, message: "ส่งการแจ้งเตือนไปยัง Webhook สำเร็จแล้ว" };
-      } else {
-        return { success: false, message: `Webhook ตอบกลับด้วยสถานะ ${webhookRes.status}` };
-      }
-    }
-
-    // If token looks like a LINE Messaging API Channel Access Token (long base64 or starts with Bearer)
-    if (lineToken.length > 80) {
-      const lineRes = await fetch("https://api.line.me/v2/bot/message/broadcast", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${lineToken}`,
-        },
-        body: JSON.stringify({
-          messages: [{ type: "text", text: messageText.trim() }],
-        }),
-      });
-      const data = (await lineRes.json().catch(() => ({}))) as any;
-      if (lineRes.ok) {
-        return { success: true, message: "ส่งข้อความผ่าน LINE Messaging API สำเร็จแล้ว" };
-      } else {
-        return {
-          success: false,
-          message: data.message || `LINE Messaging API Error (${lineRes.status})`,
-        };
-      }
-    }
-
-    // Default: LINE Notify API
-    const params = new URLSearchParams();
-    params.append("message", messageText);
-
-    const response = await fetch("https://notify-api.line.me/api/notify", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Bearer ${lineToken}`,
-      },
-      body: params.toString(),
-    });
-
-    const data = (await response.json().catch(() => ({}))) as { status?: number; message?: string };
-
-    if (response.ok && data.status === 200) {
-      return { success: true, message: "ส่งการแจ้งเตือนไปยัง LINE Notify สำเร็จแล้ว" };
-    } else {
-      return {
-        success: false,
-        message: data.message || `LINE API Error status ${response.status}`,
-      };
-    }
-  } catch (err: any) {
-    console.error("LINE Notify request error:", err);
-    return {
-      success: false,
-      message:
-        err.message && err.message.includes("fetch failed")
-          ? "ไม่สามารถเชื่อมต่อไปยัง LINE ได้ (กรุณาตรวจสอบความถูกต้องของ Token หรือใช้ 'demo' เพื่อทดสอบ)"
-          : err.message || "ไม่สามารถเชื่อมต่อไปยัง LINE ได้",
-    };
-  }
-}
-
 // ---------------- API ROUTES ----------------
 
 // 1. Health check
@@ -558,7 +388,6 @@ app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
     hasGeminiKey: !!process.env.GEMINI_API_KEY,
-    hasLineNotifyToken: !!getActiveLineNotifyToken(),
   });
 });
 
@@ -591,7 +420,7 @@ app.get("/api/records/stats", (_req, res) => {
   res.json(stats);
 });
 
-// 4. Save new BMI record immediately into database & trigger LINE notification
+// 4. Save new BMI record immediately into database
 app.post("/api/records", async (req, res) => {
   try {
     const { name, gender, age, weight, height, activityLevel, goal, notes } = req.body;
@@ -657,16 +486,11 @@ app.post("/api/records", async (req, res) => {
       goal: goal || "maintain",
       createdAt: new Date().toISOString(),
       notes: notes ? String(notes).trim() : "",
-      lineNotificationStatus: "not_configured",
     };
 
     // Generate AI recommendations
     const aiPlan = await generateGeminiHealthPlan(newRecord);
     newRecord.aiRecommendation = aiPlan;
-
-    // Send LINE Notification immediately
-    const lineResult = await sendLineNotification(newRecord);
-    newRecord.lineNotificationStatus = lineResult.success ? "sent" : lineResult.message.includes("ยังไม่ได้ตั้งค่า") ? "not_configured" : "failed";
 
     // Immediate Database Write
     const currentRecords = readRecords();
@@ -675,7 +499,6 @@ app.post("/api/records", async (req, res) => {
 
     res.status(201).json({
       record: newRecord,
-      lineResult,
       message: "บันทึกข้อมูลเข้าฐานข้อมูลเรียบร้อยแล้ว",
     });
   } catch (error: any) {
@@ -711,75 +534,6 @@ app.post("/api/ai/recommend", async (req, res) => {
     res.json({ plan });
   } catch (err: any) {
     res.status(500).json({ error: err.message || "เกิดข้อผิดพลาดในการสร้างคำแนะนำ AI" });
-  }
-});
-
-// 7. LINE Settings Endpoints
-app.get("/api/settings/line", (_req, res) => {
-  const activeToken = getActiveLineNotifyToken();
-  const isConfigured = !!activeToken;
-  let tokenMasked = "";
-  if (activeToken) {
-    tokenMasked = activeToken.length > 8 ? `${activeToken.substring(0, 4)}...${activeToken.substring(activeToken.length - 4)}` : "******";
-  }
-
-  const responseData: LineSettings = {
-    isConfigured,
-    tokenMasked,
-  };
-  res.json(responseData);
-});
-
-app.post("/api/settings/line", (req, res) => {
-  try {
-    const { token } = req.body;
-    const currentSettings = readSettings();
-    currentSettings.lineNotifyToken = token ? token.trim() : "";
-    writeSettings(currentSettings);
-    res.json({
-      success: true,
-      isConfigured: !!currentSettings.lineNotifyToken,
-      message: currentSettings.lineNotifyToken ? "บันทึก LINE Notify Token เรียบร้อยแล้ว" : "ยกเลิก LINE Token แล้ว",
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "ไม่สามารถบันทึกการตั้งค่า LINE ได้" });
-  }
-});
-
-// 8. Test LINE Notification Endpoint
-app.post("/api/settings/line/test", async (req, res) => {
-  try {
-    const { token } = req.body;
-    const activeToken = token || getActiveLineNotifyToken();
-    if (!activeToken) {
-      return res.status(400).json({ success: false, message: "กรุณาระบุ LINE Notify Token ก่อนทดสอบ" });
-    }
-
-    // Send a test message
-    const testRecord: BmiRecord = {
-      id: "test",
-      name: "ทดสอบระบบ (Test Connection)",
-      gender: "male",
-      age: 25,
-      weight: 65,
-      height: 170,
-      bmi: 22.5,
-      category: "normal",
-      categoryLabelTh: "น้ำหนักปกติ สมส่วน (สุขภาพดี)",
-      categoryColor: "#10b981",
-      idealWeightMin: 53.5,
-      idealWeightMax: 66.2,
-      bmr: 1600,
-      tdee: 2200,
-      activityLevel: "moderate",
-      goal: "maintain",
-      createdAt: new Date().toISOString(),
-    };
-
-    const result = await sendLineNotification(testRecord, activeToken);
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ success: false, message: err.message || "เกิดข้อผิดพลาดในการทดสอบส่ง LINE" });
   }
 });
 

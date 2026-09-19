@@ -1,125 +1,146 @@
 import React from 'react';
-import { Activity, Bell, Database, CheckCircle2, AlertCircle } from 'lucide-react';
-import type { LineSettings } from '../types';
+import { Database, Dumbbell, Trophy } from 'lucide-react';
+import { MASCOTS } from '../assets/mascots';
 
 interface HeaderProps {
-  activeTab: 'form' | 'history' | 'stats';
-  setActiveTab: (tab: 'form' | 'history' | 'stats') => void;
+  activeTab: 'form' | 'workout' | 'history' | 'stats';
+  setActiveTab: (tab: 'form' | 'workout' | 'history' | 'stats') => void;
   recordCount: number;
-  lineSettings: LineSettings | null;
-  onOpenLineModal: () => void;
+  onOpenCelebration: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   recordCount,
-  lineSettings,
-  onOpenLineModal,
+  onOpenCelebration,
 }) => {
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shadow-lg">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16 gap-3">
-          {/* Logo & Brand */}
+          {/* Logo & Sport Brand */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0">
-              <Activity className="w-5 h-5" />
+            {/* Athletic Mascots Avatar Duo */}
+            <div className="flex -space-x-2 shrink-0">
+              <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-lime-400 shadow-md">
+                <img
+                  src={MASCOTS.fit}
+                  alt="Fit Coach"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-amber-400 shadow-md">
+                <img
+                  src={MASCOTS.chubby}
+                  alt="Chubby Hero"
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
             </div>
+
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight truncate">
-                  ระบบบันทึก BMI ออนไลน์
+                <h1 className="text-base sm:text-lg font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-lime-400 via-emerald-300 to-cyan-400 truncate">
+                  SPORT FIT & BMI TRACKER
                 </h1>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
-                  <Database className="w-3 h-3" /> บันทึกทันที
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black uppercase bg-lime-400/20 text-lime-300 px-2 py-0.5 rounded-full border border-lime-400/30">
+                  ⚡ PRO ATHLETE
                 </span>
               </div>
-              <p className="text-xs text-slate-500 truncate hidden xs:block">
-                วิเคราะห์สุขภาพ • แนะนำอาหารและการออกกำลังกาย • แจ้งเตือน LINE
+              <p className="text-xs text-slate-400 truncate hidden xs:block">
+                ระบบคำนวณ BMI • โปรแกรมออกกำลังกายรายสัปดาห์/รายเดือน • ถ้วยรางวัลแห่งความสำเร็จ
               </p>
             </div>
           </div>
 
-          {/* Quick Actions & LINE Status */}
+          {/* Right Action: Trophy Share & Database Count */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Direct Trophy Pop-up Button */}
             <button
-              id="line-status-button"
-              onClick={onOpenLineModal}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-                lineSettings?.isConfigured
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                  : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-              }`}
-              title="คลิกเพื่อตั้งค่าและทดสอบแจ้งเตือน LINE"
+              id="header-btn-trophy"
+              onClick={onOpenCelebration}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black text-xs shadow-md shadow-amber-400/20 flex items-center gap-1.5 transition-all hover:scale-105 cursor-pointer"
+              title="เปิดป๊อปอัพถ้วยรางวัลและเซฟภาพความสำเร็จ"
             >
-              <div className="w-4 h-4 rounded-full bg-[#06C755] flex items-center justify-center text-white font-bold text-[9px]">
-                L
-              </div>
-              <span className="hidden md:inline">
-                {lineSettings?.isConfigured ? 'LINE เชื่อมต่อแล้ว' : 'ตั้งค่าแจ้งเตือน LINE'}
-              </span>
-              <span className="md:hidden">LINE</span>
-              {lineSettings?.isConfigured ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              ) : (
-                <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-              )}
+              <Trophy className="w-3.5 h-3.5 text-slate-950" />
+              <span className="hidden sm:inline">ฉลองความสำเร็จ / รับถ้วย</span>
+              <span className="sm:hidden">ถ้วยรางวัล</span>
             </button>
+
+            <div className="hidden md:flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-800/80 text-slate-300">
+              <Database className="w-3.5 h-3.5 text-emerald-400" />
+              <span>ฐานข้อมูล: </span>
+              <strong className="text-white">{recordCount} รายการ</strong>
+            </div>
           </div>
         </div>
 
-        {/* Navigation Tabs (Optimized for touch / mobile) */}
-        <div className="flex items-center space-x-1 border-t border-slate-100 py-1.5 overflow-x-auto no-scrollbar">
+        {/* Navigation Tabs with Sporty Energy */}
+        <div className="flex items-center space-x-1 border-t border-slate-800 py-1.5 overflow-x-auto no-scrollbar">
           <button
             id="tab-btn-form"
             onClick={() => setActiveTab('form')}
-            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
+            className={`px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-xl whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'form'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-lime-400 text-slate-950 shadow-md shadow-lime-400/20 font-black'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
             }`}
           >
-            📝 กรอกข้อมูล BMI
+            <span>📝 คำนวณ & บันทึก BMI</span>
           </button>
+
+          <button
+            id="tab-btn-workout"
+            onClick={() => setActiveTab('workout')}
+            className={`px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-xl whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'workout'
+                ? 'bg-lime-400 text-slate-950 shadow-md shadow-lime-400/20 font-black'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Dumbbell className="w-4 h-4" />
+            <span>🏋️ โปรแกรมออกกำลังกาย & การกิน</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full font-extrabold bg-amber-400 text-slate-950">
+              ใหม่
+            </span>
+          </button>
+
           <button
             id="tab-btn-history"
             onClick={() => setActiveTab('history')}
-            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-xl whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'history'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-lime-400 text-slate-950 shadow-md shadow-lime-400/20 font-black'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
             }`}
           >
             <span>📜 ประวัติในฐานข้อมูล</span>
             {recordCount > 0 && (
               <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeTab === 'history' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  activeTab === 'history'
+                    ? 'bg-slate-950 text-lime-400'
+                    : 'bg-slate-700 text-slate-200'
                 }`}
               >
                 {recordCount}
               </span>
             )}
           </button>
+
           <button
             id="tab-btn-stats"
             onClick={() => setActiveTab('stats')}
-            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-colors cursor-pointer ${
+            className={`px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-xl whitespace-nowrap transition-colors cursor-pointer ${
               activeTab === 'stats'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-lime-400 text-slate-950 shadow-md shadow-lime-400/20 font-black'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
             }`}
           >
-            📊 สรุปสถิติ
-          </button>
-          <button
-            id="tab-btn-line"
-            onClick={onOpenLineModal}
-            className="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer ml-auto flex items-center gap-1"
-          >
-            <Bell className="w-3.5 h-3.5" />
-            <span>จัดการ LINE</span>
+            📊 สรุปสถิติภาพรวม
           </button>
         </div>
       </div>

@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+/* Force all form inputs, selects, and textareas to have crisp dark text */
+input, select, textarea {
+  color: #020617 !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #64748b !important;
+  opacity: 1;
+}
+
+/* Chrome, Safari, Edge, Opera: remove number spinners if desired or ensure readability */
+input[type="number"] {
+  color: #020617 !important;
+}

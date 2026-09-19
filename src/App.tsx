@@ -1,34 +1,39 @@
 import { useState, useEffect } from 'react';
-import type { BmiRecord, DatabaseStats, LineSettings } from './types';
+import type { BmiRecord, DatabaseStats, AchievementData } from './types';
 import { Header } from './components/Header';
 import { BmiForm } from './components/BmiForm';
 import { HealthAdviceCard } from './components/HealthAdviceCard';
 import { HistoryList } from './components/HistoryList';
 import { StatsOverview } from './components/StatsOverview';
-import { LineSettingsModal } from './components/LineSettingsModal';
 import { AdviceDetailModal } from './components/AdviceDetailModal';
-import { Sparkles, Bell, CheckCircle2, AlertCircle } from 'lucide-react';
+import { WorkoutPlanner } from './components/WorkoutPlanner';
+import { CelebrationModal } from './components/CelebrationModal';
+import { Sparkles, CheckCircle2, ShieldCheck, Heart, Trophy, Dumbbell } from 'lucide-react';
+import { MASCOTS } from './assets/mascots';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'form' | 'history' | 'stats'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'workout' | 'history' | 'stats'>('form');
   const [records, setRecords] = useState<BmiRecord[]>([]);
   const [stats, setStats] = useState<DatabaseStats | null>(null);
-  const [lineSettings, setLineSettings] = useState<LineSettings | null>(null);
   const [latestSavedRecord, setLatestSavedRecord] = useState<BmiRecord | null>(null);
   const [selectedRecordForAdvice, setSelectedRecordForAdvice] = useState<BmiRecord | null>(null);
-  const [isLineModalOpen, setIsLineModalOpen] = useState(false);
-  const [lineNotificationBanner, setLineNotificationBanner] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
+
+  // Celebration Trophy Pop-up State
+  const [isCelebrationOpen, setIsCelebrationOpen] = useState(false);
+  const [celebrationData, setCelebrationData] = useState<AchievementData>({
+    title: '🏆 ยินดีด้วยกับความสำเร็จด้านสุขภาพ!',
+    subtitle: 'เริ่มต้นก้าวแรกเพื่อร่างกายที่แข็งแกร่งและฟิตสมส่วน',
+    badgeName: 'ภารกิจสุขภาพสำเร็จ',
+    mascotType: 'fit',
+    date: new Date().toLocaleDateString('th-TH'),
+  });
 
   // Fetch initial data
   const fetchData = async () => {
     try {
-      const [recordsRes, statsRes, lineRes] = await Promise.all([
+      const [recordsRes, statsRes] = await Promise.all([
         fetch('/api/records'),
         fetch('/api/records/stats'),
-        fetch('/api/settings/line'),
       ]);
 
       if (recordsRes.ok) {
@@ -43,11 +48,6 @@ export default function App() {
         const statsData = await statsRes.json();
         setStats(statsData);
       }
-
-      if (lineRes.ok) {
-        const lineData = await lineRes.json();
-        setLineSettings(lineData);
-      }
     } catch (err) {
       console.error('Failed to load initial data:', err);
     }
@@ -57,21 +57,29 @@ export default function App() {
     fetchData();
   }, []);
 
-  const handleRecordSaved = (
-    newRecord: BmiRecord,
-    lineResult?: { success: boolean; message: string }
+  const triggerCelebration = (
+    title: string,
+    subtitle: string,
+    activityName: string,
+    targetRecord?: BmiRecord
   ) => {
+    const rec = targetRecord || latestSavedRecord || records[0];
+    setCelebrationData({
+      title,
+      subtitle,
+      badgeName: 'VICTORY TROPHY',
+      mascotType: 'fit',
+      record: rec,
+      completedActivity: activityName,
+      date: new Date().toLocaleDateString('th-TH'),
+    });
+    setIsCelebrationOpen(true);
+  };
+
+  const handleRecordSaved = (newRecord: BmiRecord) => {
     setRecords((prev) => [newRecord, ...prev]);
     setLatestSavedRecord(newRecord);
     fetchData();
-
-    if (lineResult) {
-      setLineNotificationBanner(lineResult);
-      // Auto-hide banner after 7 seconds
-      setTimeout(() => {
-        setLineNotificationBanner(null);
-      }, 7000);
-    }
   };
 
   const handleDeleteRecord = async (id: string) => {
@@ -90,72 +98,45 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800">
+    <div className="min-h-screen bg-slate-950 flex flex-col text-slate-100 selection:bg-lime-400 selection:text-slate-950">
       {/* Top Header */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         recordCount={records.length}
-        lineSettings={lineSettings}
-        onOpenLineModal={() => setIsLineModalOpen(true)}
+        onOpenCelebration={() =>
+          triggerCelebration(
+            '🏆 ถ้วยรางวัลแห่งความสำเร็จด้านสุขภาพ!',
+            'บันทึกสถิติความฟิตและแชร์ความภาคภูมิใจของคุณ',
+            'สถิติสุขภาพ & บันทึกดัชนีมวลกาย'
+          )
+        }
       />
-
-      {/* Real-time LINE Notification Delivery Banner */}
-      {lineNotificationBanner && (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-3 w-full animate-in fade-in slide-in-from-top-2">
-          <div
-            className={`p-3.5 rounded-2xl border text-xs sm:text-sm flex items-center justify-between gap-3 shadow-xs ${
-              lineNotificationBanner.success
-                ? 'bg-[#06C755]/10 border-[#06C755]/30 text-emerald-950'
-                : 'bg-amber-50 border-amber-200 text-amber-950'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                  lineNotificationBanner.success ? 'bg-[#06C755] text-white' : 'bg-amber-500 text-white'
-                }`}
-              >
-                <Bell className="w-3.5 h-3.5" />
-              </div>
-              <div className="truncate">
-                <span className="font-bold">
-                  {lineNotificationBanner.success
-                    ? 'แจ้งเตือน LINE สำเร็จ: '
-                    : 'สถานะการแจ้งเตือน LINE: '}
-                </span>
-                <span className="text-slate-600">{lineNotificationBanner.message}</span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setIsLineModalOpen(true)}
-              className="text-xs font-semibold underline text-[#06C755] hover:text-emerald-800 shrink-0 cursor-pointer"
-            >
-              ดูรายละเอียด LINE
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 py-6 w-full space-y-6">
+        {/* TAB 1: FORM & LIVE GAUGE */}
         {activeTab === 'form' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Column: Form & Gauge */}
             <div className="lg:col-span-7 space-y-6">
-              <BmiForm onRecordSaved={handleRecordSaved} />
+              <BmiForm
+                onRecordSaved={handleRecordSaved}
+                onCelebrate={(title, subtitle, activity) =>
+                  triggerCelebration(title, subtitle, activity)
+                }
+              />
             </div>
 
-            {/* Right Column: Tailored Health Plan */}
+            {/* Right Column: Tailored Health Plan & Quick Workout Prompt */}
             <div className="lg:col-span-5 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-slate-900 font-bold text-sm">
-                  <Sparkles className="w-4 h-4 text-emerald-600" />
-                  <span>คำแนะนำการกินและการออกกำลังกาย</span>
+                <div className="flex items-center gap-1.5 text-lime-400 font-black text-sm">
+                  <Sparkles className="w-4 h-4 text-lime-400" />
+                  <span>คำแนะนำการกิน & การออกกำลังกาย</span>
                 </div>
                 {latestSavedRecord && (
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-slate-400">
                     ข้อมูลล่าสุด: {latestSavedRecord.name}
                   </span>
                 )}
@@ -165,91 +146,151 @@ export default function App() {
                 <HealthAdviceCard
                   record={latestSavedRecord}
                   plan={latestSavedRecord.aiRecommendation}
+                  onGoToWorkout={() => setActiveTab('workout')}
+                  onCelebrate={() =>
+                    triggerCelebration(
+                      `🏆 ยินดีกับคุณ ${latestSavedRecord.name}!`,
+                      `ได้รับแผนโภชนาการและการออกกำลังกายเฉพาะบุคคลเรียบร้อยแล้ว`,
+                      `แผนสุขภาพเฉพาะบุคคล BMI ${latestSavedRecord.bmi}`
+                    )
+                  }
                 />
               ) : (
-                <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
-                    <Sparkles className="w-6 h-6" />
+                <div className="bg-slate-900 rounded-3xl border border-dashed border-slate-700 p-7 text-center space-y-3">
+                  <div className="flex items-center justify-center -space-x-2">
+                    <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-lime-400 shadow">
+                      <img
+                        src={MASCOTS.fit}
+                        alt="Coach Fit"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-amber-400 shadow">
+                      <img
+                        src={MASCOTS.chubby}
+                        alt="Chubby Hero"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
                   </div>
-                  <h4 className="text-sm font-bold text-slate-800">
-                    ยังไม่มีข้อมูลคำแนะนำในขณะนี้
+                  <h4 className="text-sm font-bold text-white">
+                    พร้อมเริ่มต้นฟิตหุ่นไปด้วยกันหรือยัง?
                   </h4>
-                  <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+                  <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
                     กรอกข้อมูลชื่อ น้ำหนัก และส่วนสูงในฟอร์มด้านซ้าย
-                    เพื่อรับตารางอาหารและการออกกำลังกายเฉพาะบุคคลทันที
+                    เพื่อรับการวิเคราะห์ BMI, TDEE ตารางอาหาร และโปรแกรมการออกกำลังกายทันที!
                   </p>
                 </div>
               )}
 
-              {/* Quick LINE Reminder Card */}
-              {!lineSettings?.isConfigured && (
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 border border-emerald-200 rounded-2xl p-4 text-xs space-y-2">
-                  <div className="flex items-center gap-2 text-emerald-900 font-bold">
-                    <div className="w-5 h-5 rounded-full bg-[#06C755] text-white flex items-center justify-center text-[10px] font-bold">
-                      L
-                    </div>
-                    <span>ต้องการรับแจ้งเตือนเมื่อมีข้อมูลใหม่หรือไม่?</span>
+              {/* Quick Jump to Workout Schedule Card */}
+              <div
+                onClick={() => setActiveTab('workout')}
+                className="bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-900 border border-emerald-500/40 hover:border-lime-400 rounded-3xl p-4 text-xs space-y-2 cursor-pointer transition-all hover:scale-[1.01] shadow-lg group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-black text-lime-300">
+                    <Dumbbell className="w-4 h-4 text-lime-400" />
+                    <span>ตารางแนะนำโปรแกรมออกกำลังกาย</span>
                   </div>
-                  <p className="text-emerald-800 leading-relaxed text-[11px]">
-                    คุณสามารถเชื่อมต่อ LINE Notify ฟรี เพื่อให้ระบบส่งสรุปผล BMI,
-                    สถานะสุขภาพ และคำแนะนำเข้าแชท LINE อัตโนมัติทุกครั้งที่มีผู้กรอกข้อมูล
-                  </p>
-                  <button
-                    onClick={() => setIsLineModalOpen(true)}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline cursor-pointer"
-                  >
-                    ตั้งค่า LINE Notify ตอนนี้ &rarr;
-                  </button>
+                  <span className="text-[10px] bg-lime-400 text-slate-950 font-black px-2 py-0.5 rounded-full group-hover:bg-lime-300">
+                    เปิดตาราง &gt;
+                  </span>
                 </div>
-              )}
+                <p className="text-slate-300 leading-relaxed text-[11px]">
+                  เลือกโปรแกรมรายสัปดาห์ (7 วัน) หรือรายเดือน (4 สัปดาห์) เหมาะสมทั้งผู้เริ่มต้น ผู้มีน้ำหนักเกิน และผู้ต้องการสร้างกล้ามเนื้อ
+                </p>
+              </div>
+
+              {/* Health Guidance Overview Card */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 text-xs space-y-2 text-slate-300">
+                <div className="flex items-center gap-2 font-bold text-slate-200">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>ระบบคำนวณและบันทึกข้อมูลอัตโนมัติ</span>
+                </div>
+                <p className="text-slate-400 leading-relaxed text-[11px]">
+                  เมื่อบันทึกข้อมูล ระบบจะคำนวณค่า BMI (เกณฑ์เอเชีย), BMR, TDEE และช่วงน้ำหนักที่เหมาะสม พร้อมตารางอาหารที่ออกแบบเฉพาะบุคคลทันที
+                </p>
+              </div>
             </div>
           </div>
         )}
 
+        {/* TAB 2: SPORT WORKOUT & NUTRITION PROGRAM (WEEKLY & MONTHLY) */}
+        {activeTab === 'workout' && (
+          <WorkoutPlanner
+            currentRecord={latestSavedRecord || records[0]}
+            onCelebrate={(title, subtitle, activity) =>
+              triggerCelebration(title, subtitle, activity)
+            }
+          />
+        )}
+
+        {/* TAB 3: HISTORY LIST */}
         {activeTab === 'history' && (
           <HistoryList
             records={records}
             onSelectRecord={(rec) => setSelectedRecordForAdvice(rec)}
             onDeleteRecord={handleDeleteRecord}
+            onCelebrateRecord={(rec) =>
+              triggerCelebration(
+                `🏆 ประวัติความสำเร็จ: คุณ ${rec.name}`,
+                `บันทึกเมื่อ: ${new Date(rec.createdAt).toLocaleDateString('th-TH')} • BMI ${rec.bmi} (${rec.categoryLabelTh})`,
+                `บันทึกประวัติสุขภาพดัชนีมวลกาย`,
+                rec
+              )
+            }
           />
         )}
 
+        {/* TAB 4: STATS OVERVIEW */}
         {activeTab === 'stats' && <StatsOverview stats={stats} />}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 mt-auto">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+      <footer className="border-t border-slate-800 bg-slate-900/90 py-4 mt-auto">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
           <p>
-            ระบบบันทึกดัชนีมวลกาย (BMI) ออนไลน์ • ตามเกณฑ์มาตรฐานเอเชีย (Asian BMI Classification)
+            SPORT FIT & BMI TRACKER • ระบบดัชนีมวลกายและโปรแกรมฟิตเนสสายสปอร์ต (Asian Standard)
           </p>
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1 text-emerald-700">
+            <button
+              onClick={() =>
+                triggerCelebration(
+                  '🏆 ฉลองความสำเร็จด้านสุขภาพ!',
+                  'ยินดีกับทุกความพยายามเพื่อสุขภาพที่ดีของคุณ',
+                  'แชมเปี้ยนประจำวัน'
+                )
+              }
+              className="flex items-center gap-1 text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer"
+            >
+              <Trophy className="w-3.5 h-3.5" /> ฉลองความสำเร็จ
+            </button>
+            <span>•</span>
+            <span className="flex items-center gap-1 text-emerald-400">
               <CheckCircle2 className="w-3.5 h-3.5" /> ฐานข้อมูลเรียลไทม์
             </span>
             <span>•</span>
-            <button
-              onClick={() => setIsLineModalOpen(true)}
-              className="text-slate-600 hover:text-emerald-700 cursor-pointer flex items-center gap-1"
-            >
-              <Bell className="w-3.5 h-3.5" /> แจ้งเตือน LINE
-            </button>
+            <span className="flex items-center gap-1 text-slate-300">
+              <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> หุ่นดี สุขภาพแข็งแกร่ง
+            </span>
           </div>
         </div>
       </footer>
-
-      {/* LINE Settings & Test Modal */}
-      <LineSettingsModal
-        isOpen={isLineModalOpen}
-        onClose={() => setIsLineModalOpen(false)}
-        lineSettings={lineSettings}
-        onSettingsUpdated={fetchData}
-      />
 
       {/* Advice Detail Modal */}
       <AdviceDetailModal
         record={selectedRecordForAdvice}
         onClose={() => setSelectedRecordForAdvice(null)}
+      />
+
+      {/* Celebration Trophy Pop-up Modal */}
+      <CelebrationModal
+        isOpen={isCelebrationOpen}
+        onClose={() => setIsCelebrationOpen(false)}
+        data={celebrationData}
       />
     </div>
   );

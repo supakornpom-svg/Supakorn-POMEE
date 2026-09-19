@@ -16,9 +16,16 @@ import type { AiHealthPlan, BmiRecord } from '../types';
 interface HealthAdviceCardProps {
   record: BmiRecord;
   plan: AiHealthPlan;
+  onCelebrate?: () => void;
+  onGoToWorkout?: () => void;
 }
 
-export const HealthAdviceCard: React.FC<HealthAdviceCardProps> = ({ record, plan }) => {
+export const HealthAdviceCard: React.FC<HealthAdviceCardProps> = ({
+  record,
+  plan,
+  onCelebrate,
+  onGoToWorkout,
+}) => {
   const [activeSubTab, setActiveSubTab] = useState<'diet' | 'exercise' | 'meals'>('diet');
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -292,6 +299,28 @@ export const HealthAdviceCard: React.FC<HealthAdviceCardProps> = ({ record, plan
               </div>
             </div>
           )}
+
+          {/* Action Row: Workout program & Trophy share */}
+          <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-2">
+            {onGoToWorkout && (
+              <button
+                onClick={onGoToWorkout}
+                className="w-full sm:flex-1 py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-lime-400 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border border-slate-800"
+              >
+                <Dumbbell className="w-4 h-4" />
+                <span>ดูตารางออกกำลังกายรายสัปดาห์ & รายเดือน</span>
+              </button>
+            )}
+
+            {onCelebrate && (
+              <button
+                onClick={onCelebrate}
+                className="w-full sm:w-auto py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-400/20 transition-all cursor-pointer"
+              >
+                <span>🏆 รับถ้วย & เซฟภาพสรุป</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

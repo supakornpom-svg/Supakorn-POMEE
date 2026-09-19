@@ -23,7 +23,6 @@ export interface BmiRecord {
   activityLevel: 'sedentary' | 'light' | 'moderate' | 'very_active';
   goal: 'lose_weight' | 'maintain' | 'gain_weight';
   createdAt: string;
-  lineNotificationStatus?: 'sent' | 'failed' | 'not_configured';
   aiRecommendation?: AiHealthPlan;
   notes?: string;
 }
@@ -52,14 +51,6 @@ export interface AiHealthPlan {
   keyTakeaways: string[];
 }
 
-export interface LineSettings {
-  isConfigured: boolean;
-  tokenMasked?: string;
-  lastTestedAt?: string;
-  lastTestStatus?: 'success' | 'failed';
-  lastTestMessage?: string;
-}
-
 export interface DatabaseStats {
   total: number;
   avgBmi: number;
@@ -70,4 +61,59 @@ export interface DatabaseStats {
     obese1: number;
     obese2: number;
   };
+}
+
+export interface WorkoutExercise {
+  name: string;
+  sets: string;
+  reps: string;
+  rest: string;
+  targetMuscle: string;
+  tip: string;
+}
+
+export interface WorkoutDayPlan {
+  dayNumber: number;
+  dayName: string;
+  focus: string;
+  durationMinutes: number;
+  intensity: 'low' | 'medium' | 'high';
+  isRestDay?: boolean;
+  exercises: WorkoutExercise[];
+  cardioAdvice?: string;
+}
+
+export interface WorkoutWeekPlan {
+  weekNumber: number;
+  phaseTitle: string;
+  goalDescription: string;
+  keyFocus: string[];
+  days: WorkoutDayPlan[];
+}
+
+export interface SportWorkoutProgram {
+  id: string;
+  title: string;
+  subtitle: string;
+  targetCategory: string;
+  level: 'เริ่มต้น' | 'ปานกลาง' | 'เข้มข้น';
+  burnRating: number;
+  weeklySchedule: WorkoutDayPlan[];
+  monthlyPhases: WorkoutWeekPlan[];
+  nutritionTips: {
+    preWorkout: string;
+    postWorkout: string;
+    hydration: string;
+    supplement: string;
+  };
+}
+
+export interface AchievementData {
+  title: string;
+  subtitle: string;
+  badgeName: string;
+  mascotType: 'fit' | 'chubby' | 'both';
+  record?: BmiRecord;
+  completedActivity?: string;
+  date: string;
 }
